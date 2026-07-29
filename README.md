@@ -95,6 +95,25 @@ changing the pricing engine.
 
 ---
 
+# Domain Model
+PricingFailureEvent
+
+---
+
+eventId
+
+rfqId
+
+instrument
+
+assetClass
+
+failureReason
+
+occurredAt
+
+---
+
 # Future Implementation
 
 
