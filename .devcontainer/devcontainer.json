@@ -1,0 +1,44 @@
+{
+    "name": "Java 21 Spring Boot Kafka Project",
+
+    "image": "mcr.microsoft.com/devcontainers/java:21",
+
+ "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:4": {
+      "moby": false
+    },
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "21",
+      "installMaven": true,
+      "mavenVersion": "3.9.16"
+    }
+  },
+
+  "remoteEnv": {
+    "MAVEN_OPTS": "-Xmx2g"
+  },
+
+  "postCreateCommand": "mvn -v && java -version && echo '✓ Development environment ready'",
+
+  "postStartCommand": "mvn -q dependency:resolve || true",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vscjava.vscode-maven",
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-xml",
+        "42crunch.vscode-openapi",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "java.configuration.updateBuildConfiguration": "automatic",
+        "java.test.defaultConfig": "testng",
+        "editor.formatOnSave": true,
+        "files.trimTrailingWhitespace": true
+      }
+    }
+  }
+}

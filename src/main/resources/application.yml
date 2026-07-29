@@ -1,0 +1,9 @@
+spring:
+
+  application:
+    name: fixed-income-pricing-failure-notification
+
+
+server:
+
+  port: 8080
