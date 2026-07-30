@@ -750,32 +750,32 @@ Potential enhancements:
 
 # Project Roadmap
 
-## Completed
+# Current Implementation Status
 
-✅ Spring Boot foundation
+Completed:
 
-✅ Java 21 Dev Container
+✅ Spring Boot Kafka configuration
 
-✅ Domain event model
+✅ Kafka topic externalised through configuration
 
-✅ Kafka infrastructure configuration
+✅ PricingFailureEventPublisher
+
+✅ Publisher unit test
+
+✅ Sales Trader Kafka consumer
+
+✅ Fixed Income Trader Kafka consumer
 
 
-## Upcoming
+Upcoming:
 
-⬜ Kafka publisher
+⬜ Notification service layer
 
-⬜ Trader notification consumers
+⬜ Recipient List BDD integration test
 
-⬜ REST API
+⬜ Kafka Testcontainers environment
 
-⬜ Testcontainers integration tests
-
-⬜ BDD implementation
-
-⬜ GitHub Actions pipeline
-
-⬜ Architecture diagrams
+⬜ Dead Letter Queue handling
 
 ---
 
@@ -1066,6 +1066,85 @@ Upcoming:
 ⬜ BDD integration test
 
 ⬜ Kafka Testcontainers environment
+
+---
+
+# Kafka Consumers
+
+The platform now contains two independent consumers.
+
+Both consume the same business event:
+
+```
+pricing-failure-events
+```
+
+However, they use separate Kafka consumer groups.
+
+```
+              pricing-failure-events
+
+
+                    |
+
+        +-----------+-----------+
+
+        |                       |
+
+        v                       v
+
+
+sales-trader              fixed-income-trader
+
+
+```
+
+This allows both traders to receive notification.
+
+---
+
+# Recipient List Pattern
+
+Kafka consumer groups provide the Recipient List behaviour.
+
+The producer publishes once:
+
+```
+PricingFailureEvent
+```
+
+Consumers subscribe independently.
+
+Adding another consumer does not require changing the producer.
+
+Example future consumers:
+
+- Operations dashboard
+- Audit service
+- Monitoring service
+
+```
+Pricing Engine
+
+       |
+
+       |
+
+Kafka Event
+
+       |
+
+       +------------ Sales Trader
+
+       |
+
+       +------------ Fixed Income Trader
+
+       |
+
+       +------------ Audit Service
+
+```
 
 ## Testcontainers
 
