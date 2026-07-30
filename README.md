@@ -323,6 +323,359 @@ The application can be developed without installing Java locally.
 
 ---
 
+---
+
+# Development Environment vs Test Infrastructure
+
+This project uses both **Dev Containers** and **Testcontainers**.
+
+Although both use Docker, they solve different problems.
+
+---
+
+# Dev Container
+
+## Purpose
+
+A Dev Container provides a consistent development environment for engineers.
+
+It is used while writing and running the application.
+
+The developer does not need to install Java, Maven, or other tooling locally.
+
+Architecture:
+
+```
+Developer
+
+    |
+
+    |
+
+GitHub Codespace
+
+    |
+
+    |
+
+Dev Container
+
+    |
+
+    +----------------+
+    |                |
+    v                v
+
+ Java 21          Maven
+
+ VS Code          Docker Tools
+
+```
+
+The Dev Container provides:
+
+- Java 21
+- Maven
+- VS Code Java extensions
+- Docker support
+- Consistent developer environment
+
+Configuration:
+
+```
+.devcontainer/
+
+    |
+
+    +-- devcontainer.json
+
+    |
+
+    +-- Dockerfile
+```
+
+---
+
+# Testcontainers
+
+## Purpose
+
+Testcontainers provides disposable infrastructure for automated tests.
+
+It is used when executing integration tests.
+
+Instead of mocking external systems, the tests run against real infrastructure inside Docker containers.
+
+Example:
+
+```
+JUnit 5 Integration Test
+
+          |
+
+          |
+
+Spring Boot Application
+
+          |
+
+          |
+
+Testcontainers
+
+          |
+
+          |
+
+Kafka Docker Container
+
+          |
+
+          |
+
+Assertions
+
+```
+
+---
+
+# Why Use Testcontainers?
+
+A mocked Kafka test:
+
+```
+Application
+
+      |
+
+      |
+
+Mock Kafka Object
+
+      |
+
+      |
+
+Test Result
+
+```
+
+Only verifies Java interactions.
+
+It does not verify:
+
+- Kafka connectivity
+- Serialization
+- Consumer configuration
+- Topic communication
+- Consumer groups
+
+---
+
+A Testcontainers integration test:
+
+```
+BDD Test
+
+      |
+
+      |
+
+Spring Boot Application
+
+      |
+
+      |
+
+Real Kafka Broker
+
+running inside Docker
+
+      |
+
+      |
+
+Test Assertions
+
+```
+
+This provides:
+
+- Production-like testing
+- Repeatable environments
+- No manual Kafka installation
+- Real message communication
+
+---
+
+# How Dev Containers and Testcontainers Work Together
+
+The complete development workflow:
+
+```
+Developer
+
+     |
+
+     |
+
+GitHub Codespace
+
+     |
+
+     |
+
+Dev Container
+
+(Java 21 + Maven)
+
+     |
+
+     |
+
+Spring Boot Application
+
+
+During Integration Tests:
+
+
+JUnit 5
+
+     |
+
+     |
+
+Testcontainers
+
+     |
+
+     |
+
+Kafka Container
+
+     |
+
+     |
+
+Kafka Broker
+
+
+```
+
+The developer environment and test infrastructure are separated.
+
+---
+
+# Testcontainers Lifecycle
+
+During an integration test:
+
+```
+1. Test starts
+
+        |
+
+        v
+
+2. Testcontainers starts Kafka container
+
+        |
+
+        v
+
+3. Spring Boot connects to Kafka
+
+        |
+
+        v
+
+4. Test publishes PricingFailureEvent
+
+        |
+
+        v
+
+5. Consumers receive event
+
+        |
+
+        v
+
+6. Assertions execute
+
+        |
+
+        v
+
+7. Kafka container is destroyed
+
+```
+
+Each test execution starts with a clean environment.
+
+---
+
+# Production Similarity
+
+Production:
+
+```
+Spring Boot Application
+
+        |
+
+        |
+
+Kafka Broker
+
+        |
+
+        |
+
+Trader Notification Services
+
+```
+
+Testing:
+
+```
+Spring Boot Application
+
+        |
+
+        |
+
+Kafka Testcontainer
+
+        |
+
+        |
+
+Trader Notification Consumers
+
+```
+
+The application communicates using the same Kafka protocol.
+
+The only difference is that testing uses a temporary Kafka broker.
+
+---
+
+# Technologies Used
+
+| Technology | Purpose |
+|---|---|
+| Java 21 | Application runtime |
+| Spring Boot | Application framework |
+| Kafka | Event messaging |
+| Dev Containers | Development environment |
+| Testcontainers | Integration test infrastructure |
+| Docker | Container runtime |
+| JUnit 5 | Test execution |
+| GitHub Codespaces | Cloud development environment |
+
+---
+
 # Opening in GitHub Codespaces
 
 1. Open repository

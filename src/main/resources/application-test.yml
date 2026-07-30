@@ -1,12 +1,33 @@
 spring:
+
   kafka:
+
+    producer:
+      key-serializer:
+        org.apache.kafka.common.serialization.StringSerializer
+
+      value-serializer:
+        org.springframework.kafka.support.serializer.JsonSerializer
+
+
     consumer:
-      group-id: pricing-test
 
-      auto-offset-reset: earliest
+      key-deserializer:
+        org.apache.kafka.common.serialization.StringDeserializer
 
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      value-deserializer:
+        org.springframework.kafka.support.serializer.JsonDeserializer
+
 
       properties:
-        spring.json.trusted.packages: "com.company.pricing.domain"
+
+        spring.json.trusted.packages: "*"
+
+
+application:
+
+  kafka:
+
+    topics:
+
+      pricing-failure: pricing-failure-events
