@@ -1,26 +1,24 @@
 package com.company.pricing.messaging.consumer;
 
-
 import com.company.pricing.domain.PricingFailureEvent;
+import com.company.pricing.notification.TraderNotificationService;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
-
 
 @Component
 public class FixedIncomeTraderNotificationConsumer {
 
+    private final TraderNotificationService notificationService;
+
+    public FixedIncomeTraderNotificationConsumer(TraderNotificationService notificationService) {
+        this.notificationService = notificationService;
+    }
 
     @KafkaListener(
-            topics = "pricing-failure-events",
+            topics = "${application.kafka.topics.pricing-failure}",
             groupId = "fixed-income-trader"
     )
     public void receive(PricingFailureEvent event) {
-
-
-        System.out.println(
-                "Notify Fixed Income Trader for RFQ: "
-                        + event.rfqId()
-        );
-
+        notificationService.notifyFixedIncomeTrader(event);
     }
 }
