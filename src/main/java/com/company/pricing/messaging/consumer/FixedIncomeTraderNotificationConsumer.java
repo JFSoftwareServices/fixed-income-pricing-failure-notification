@@ -15,7 +15,7 @@ public class FixedIncomeTraderNotificationConsumer {
     }
 
     @KafkaListener(
-            topics = "${application.kafka.topics.pricing-failure}",
+            topics = "${application.kafka.pricing-failure}",
             groupId = "fixed-income-trader"
     )
     public void receive(PricingFailureEvent event) {

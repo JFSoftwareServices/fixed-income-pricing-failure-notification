@@ -4,6 +4,7 @@ import com.company.pricing.domain.PricingFailureEvent;
 import com.company.pricing.notification.TraderNotificationService;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+
 @Component
 public class SalesTraderNotificationConsumer {
 
@@ -14,7 +15,7 @@ public class SalesTraderNotificationConsumer {
     }
 
     @KafkaListener(
-            topics = "${application.kafka.topics.pricing-failure}",
+            topics = "${application.kafka.pricing-failure}",
             groupId = "sales-trader"
     )
     public void receive(PricingFailureEvent event) {

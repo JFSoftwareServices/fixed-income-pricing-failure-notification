@@ -1118,6 +1118,47 @@ The test verifies:
 - Multiple consumers
 - Recipient List behaviour
 
+# End-to-End Test Objective
+
+The BDD integration test validates the complete event flow.
+
+The test does not mock Kafka.
+
+It verifies:
+
+- PricingFailureEvent publication
+- Kafka message delivery
+- Multiple consumer groups
+- Recipient List behaviour
+- Trader notification handling
+
+Flow:
+
+Client RFQ
+
+↓
+
+Pricing Engine
+
+↓
+
+PricingFailureEvent
+
+↓
+
+Kafka Testcontainer
+
+↓
+
+Sales Trader Consumer
+
++
+
+Fixed Income Trader Consumer
+
+↓
+
+Notification Assertions
 ---
 
 # Running the Application

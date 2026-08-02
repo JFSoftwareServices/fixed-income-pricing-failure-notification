@@ -1,8 +1,6 @@
 spring:
   application:
     name: fixed-income-pricing-failure-notification
-
 application:
   kafka:
-    topics:
-      pricing-failure: pricing-failure-events
+    pricing-failure: pricing-failure-events
