@@ -3,7 +3,6 @@ package com.company.pricing.messaging.publisher;
 import com.company.pricing.config.KafkaTopicsProperties;
 import com.company.pricing.domain.PricingFailureEvent;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.kafka.core.KafkaTemplate;
 
 import java.time.Instant;
@@ -15,6 +14,7 @@ class PricingFailureEventPublisherTest {
 
         @Test
         void shouldPublishPricingFailureEvent() {
+                @SuppressWarnings("unchecked")
                 KafkaTemplate<String, PricingFailureEvent> kafkaTemplate = mock(KafkaTemplate.class);
 
                 KafkaTopicsProperties topics = new KafkaTopicsProperties(
