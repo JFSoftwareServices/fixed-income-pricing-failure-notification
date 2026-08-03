@@ -14,4 +14,4 @@ spring:
         spring.json.trusted.packages: "*"
 application:
   kafka:
-    pricing-failure: pricing-failure-events
+    pricing-failure-topic: pricing-failure-events

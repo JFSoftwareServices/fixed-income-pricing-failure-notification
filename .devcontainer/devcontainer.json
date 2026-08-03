@@ -1,5 +1,5 @@
 {
-  "name": "Java 21 Spring Boot Kafka Project",
+  "name": "Java 21 Spring Boot Kafka Testcontainers",
 
   "image": "mcr.microsoft.com/devcontainers/java:21",
 
@@ -14,6 +14,8 @@
       "mavenVersion": "3.9.16"
     }
   },
+
+  "postCreateCommand": "mvn -v && java -version",
 
   "postStartCommand": "docker system prune -f --volumes || true"
 }

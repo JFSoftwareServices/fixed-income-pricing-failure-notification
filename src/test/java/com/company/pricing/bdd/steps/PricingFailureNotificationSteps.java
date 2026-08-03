@@ -4,7 +4,7 @@ import com.company.pricing.domain.AssetClass;
 import com.company.pricing.domain.FailureReason;
 import com.company.pricing.domain.PricingFailureEvent;
 import com.company.pricing.messaging.publisher.PricingFailureEventPublisher;
-import com.company.pricing.bdd.support.RecordingTraderNotificationService;
+import com.company.pricing.bdd.support.RecordingTraderNotificationServiceSpy;
 
 import io.cucumber.java.en.*;
 
@@ -19,13 +19,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class PricingFailureNotificationSteps {
 
     private final PricingFailureEventPublisher publisher;
-    private final RecordingTraderNotificationService recorder;
+    private final RecordingTraderNotificationServiceSpy recorder;
 
     private PricingFailureEvent event;
 
     public PricingFailureNotificationSteps(
             PricingFailureEventPublisher publisher,
-            RecordingTraderNotificationService recorder) {
+            RecordingTraderNotificationServiceSpy recorder) {
 
         this.publisher = publisher;
         this.recorder = recorder;

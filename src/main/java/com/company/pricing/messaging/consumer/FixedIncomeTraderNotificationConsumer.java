@@ -5,6 +5,9 @@ import com.company.pricing.notification.TraderNotificationService;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+/**
+ * Consumes pricing failure events and notifies the Fixed Income trading desk.
+ */
 @Component
 public class FixedIncomeTraderNotificationConsumer {
 
@@ -15,7 +18,7 @@ public class FixedIncomeTraderNotificationConsumer {
     }
 
     @KafkaListener(
-            topics = "${application.kafka.pricing-failure}",
+            topics = "${application.kafka.pricing-failure-topic}",
             groupId = "fixed-income-trader"
     )
     public void receive(PricingFailureEvent event) {

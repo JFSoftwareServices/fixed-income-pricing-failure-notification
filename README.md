@@ -9,289 +9,101 @@
 
 # Overview
 
-This project demonstrates an event-driven notification workflow within a fixed-income trading platform.
+This project demonstrates **integration testing of a Spring Boot Kafka application using Testcontainers**.
 
-The business scenario:
+The project simulates a simplified fixed-income pricing workflow where an automatic pricing failure generates a business event.
 
-> When an automatic pricing attempt fails, the Sales Trader and Fixed Income Trader must be notified.
+The primary purpose of this repository is to demonstrate:
 
-The project demonstrates:
+- Spring Boot Kafka integration testing
+- Real Kafka infrastructure using Testcontainers
+- Event-driven messaging
+- Kafka producers and consumers
+- BDD testing with Cucumber
 
-- Java 21
-- Spring Boot
-- Apache Kafka
-- Enterprise Integration Patterns (EIP)
-- Recipient List pattern
-- Event-driven architecture
-- BDD integration testing
-- Testcontainers
-- GitHub Codespaces
-- GitHub Actions CI/CD
+This is a **test-focused demonstration project**.
+
+This is a test-focused demonstration project.
 
 ---
 
-# Business Context
+# Business Scenario
 
-A fixed-income trading platform allows institutional clients to submit RFQs (Request For Quote).
+A fixed-income trading platform receives RFQs (Requests For Quote).
 
-Example workflow:
+The pricing engine attempts to automatically generate a tradable price.
 
-```
-Client
+High-level workflow:
 
-   |
-   |
-   v
+![Fixed Income Full Pricing Flow](docs/full_pricing_flow.png)
 
-RFQ Request
-
-   |
-   |
-   v
-
-Pricing Engine
-
-   |
-   |
-   v
-
-Automatic Pricing Attempt
-```
-
-The pricing engine attempts to automatically calculate a tradable price.
-
-If successful:
-
-```
-RFQ
-
- |
-
-Price Generated
-
- |
-
-Trader receives quote
-```
-
-If automatic pricing fails:
-
-```
-RFQ
-
- |
-
-Automatic Pricing Failure
-
- |
-
-PricingFailureEvent
-
- |
-
-+---------------------+
-|                     |
-v                     v
-
-Sales Trader          Fixed Income Trader
-
-Notification          Notification
-```
-
-This project focuses on the failure notification workflow.
+The integration test validates that the pricing failure event is correctly delivered to multiple consumers.
 
 ---
 
-# Architecture Overview
+# Event-Driven Design
 
-The solution uses event-driven architecture.
+The pricing component publishes a business event, `PricingFailureEvent`, when automatic pricing fails for an RFQ.
 
-The pricing engine publishes a single business event when automatic pricing fails.
+The producer has no knowledge of:
 
-The pricing engine does not know who consumes the event.
+- who consumes the event
+- how many consumers exist
+- what action each consumer performs
 
-```
-                    Pricing Engine
-
-                         |
-                         |
-                         v
-
-              PricingFailureEvent
-
-                         |
-                         |
-                         v
-
-                  Kafka Topic
-
-          pricing-failure-events
-
-                         |
-             +-----------+-----------+
-             |                       |
-             v                       v
-
-     Sales Trader Consumer   Fixed Income Trader Consumer
-```
-
----
-
-# Design Goal
-
-The pricing engine publishes one event.
-
-It does not know who is interested in that event.
-
-Example:
+This decoupling means new consumers — an audit log, a risk dashboard, an additional notification channel — can be added later without any change to the Pricing Engine or its publishing code.
 
 ```
 Pricing Engine
 
-        |
+    |
 
-        |
+    |
 
 PricingFailureEvent
 
-        |
+    |
 
-        |
+    |
 
 Kafka Topic
 
-        |
+    |
 
-        |
+    |
 
-Multiple Independent Consumers
+Multiple Consumers
 ```
 
-Adding a new consumer should not require changing the pricing engine.
-
-Future consumers could include:
-
-- Operations Dashboard
-- Audit Service
-- Monitoring Service
-- Regulatory Reporting Service
+This demonstrates loose coupling between producers and consumers.
 
 ---
 
-# Enterprise Integration Pattern
+# Kafka Recipient List Pattern
 
-## Recipient List Pattern
+This project demonstrates the Recipient List enterprise integration pattern using Kafka topics and independent consumer groups.
 
-The Recipient List pattern allows one message to be delivered to multiple recipients.
+A single event is delivered to multiple independent consumers.
 
-Traditional implementation:
 
-```
-                 Pricing Engine
-
-                       |
-
-        +--------------+--------------+
-
-        |                             |
-
-        v                             v
-
-Sales Trader                  Fixed Income Trader
-```
-
-The problem:
-
-The producer becomes tightly coupled to every recipient.
-
-Adding a new recipient requires changing the producer.
+Kafka topics and consumer groups allow multiple independent consumers to receive the same event.
 
 ---
 
-# Kafka Recipient List Implementation
+# Domain Event
 
-Kafka provides a loosely coupled implementation of the same concept.
+The main business event is **`PricingFailureEvent`**.
 
-The producer publishes one event:
-
-```
-PricingFailureEvent
-
-        |
-
-        |
-
-pricing-failure-events
-```
-
-Multiple consumers independently subscribe:
-
-```
-              pricing-failure-events
-
-
-                         |
-
-          +--------------+--------------+
-
-          |                             |
-
-          v                             v
-
-
-Sales Trader Consumer          Fixed Income Consumer
-
-
-Consumer Group:               Consumer Group:
-
-sales-trader                  fixed-income-trader
-```
-
-Kafka topics and independent consumer groups provide the same outcome as the Recipient List pattern.
-
-Each consumer group receives its own copy of the event while remaining independent from the producer.
-
----
-
-# Why Kafka?
-
-Kafka was selected because it provides:
-
-- Loose coupling
-- Asynchronous communication
-- Durable event storage
-- Multiple independent consumers
-- High throughput messaging
-
-Kafka allows new consumers to be added without changing existing producers.
-
----
-
-# Domain Model
-
-## PricingFailureEvent
-
-The event represents a business fact:
-
-> Automatic pricing failed for an RFQ.
+It represents the business fact that automatic pricing has failed for an RFQ.
 
 The event contains:
 
-```
-eventId
-
-rfqId
-
-instrument
-
-assetClass
-
-failureReason
-
-occurredAt
-```
-
-The event is immutable and implemented using Java 21 Records.
+- eventId
+- rfqId
+- instrument
+- assetClass
+- failureReason
+- occurredAt
 
 Example:
 
@@ -302,429 +114,86 @@ Example:
   "instrument": "UK GILT",
   "assetClass": "FIXED_INCOME",
   "failureReason": "PRICING_TIMEOUT",
-  "occurredAt": "2026-07-29T10:30:00Z"
+  "occurredAt": "2026-08-02T10:30:00Z"
 }
 ```
 
----
+# Kafka Producer
 
-# Development Environment
+The producer publishes pricing failure events.
 
-This project uses GitHub Codespaces with a Dev Container.
+The producer only knows about the event.
 
-The container provides:
+It does not contain trader notification logic.
 
-- Java 21
-- Maven
-- VS Code Java extensions
-- Docker support
+#  Kafka Consumers
 
-The application can be developed without installing Java locally.
+The project contains two Kafka consumers.
 
----
+Both consumers subscribe to the same Kafka topic but use different consumer groups, ensuring each receives its own copy of every `PricingFailureEvent`.
 
----
+Both consume the same Kafka topic using different consumer groups.
+      
+Each consumer delegates notification handling to:
 
-# Development Environment vs Test Infrastructure
+**`TraderNotificationService`**
 
-This project uses both **Dev Containers** and **Testcontainers**.
+This separates:
 
-Although both use Docker, they solve different problems.
+- Kafka message handling
+- Business notification logic
 
----
+# Why Testcontainers?
 
-# Dev Container
+The main objective of this project is demonstrating integration testing using Testcontainers.
 
-## Purpose
+Instead of mocking Kafka, the tests start a real Kafka broker inside Docker.
 
-A Dev Container provides a consistent development environment for engineers.
+Mock based testing:
 
-It is used while writing and running the application.
+This verifies application interactions but does not verify real Kafka communication.
 
-The developer does not need to install Java, Maven, or other tooling locally.
-
-Architecture:
-
-```
-Developer
-
-    |
-
-    |
-
-GitHub Codespace
-
-    |
-
-    |
-
-Dev Container
-
-    |
-
-    +----------------+
-    |                |
-    v                v
-
- Java 21          Maven
-
- VS Code          Docker Tools
-
-```
-
-The Dev Container provides:
-
-- Java 21
-- Maven
-- VS Code Java extensions
-- Docker support
-- Consistent developer environment
-
-Configuration:
-
-```
-.devcontainer/
-
-    |
-
-    +-- devcontainer.json
-
-    |
-
-    +-- Dockerfile
-```
-
----
-
-# Testcontainers
-
-## Purpose
-
-Testcontainers provides disposable infrastructure for automated tests.
-
-It is used when executing integration tests.
-
-Instead of mocking external systems, the tests run against real infrastructure inside Docker containers.
-
-Example:
-
-```
-JUnit 5 Integration Test
-
-          |
-
-          |
-
-Spring Boot Application
-
-          |
-
-          |
-
-Testcontainers
-
-          |
-
-          |
-
-Kafka Docker Container
-
-          |
-
-          |
-
-Assertions
-
-```
-
----
-
-# Why Use Testcontainers?
-
-A mocked Kafka test:
-
-```
-Application
-
-      |
-
-      |
-
-Mock Kafka Object
-
-      |
-
-      |
-
-Test Result
-
-```
-
-Only verifies Java interactions.
-
-It does not verify:
+It does not prove:
 
 - Kafka connectivity
 - Serialization
 - Consumer configuration
 - Topic communication
-- Consumer groups
+- Message delivery
 
----
+![Fixed Income Test Infrastructure Flow](docs/test_infra_flow.png)
 
-A Testcontainers integration test:
+Benefits:
 
-```
-BDD Test
-
-      |
-
-      |
-
-Spring Boot Application
-
-      |
-
-      |
-
-Real Kafka Broker
-
-running inside Docker
-
-      |
-
-      |
-
-Test Assertions
-
-```
-
-This provides:
-
-- Production-like testing
-- Repeatable environments
+- Real infrastructure testing
+- Repeatable test environment
 - No manual Kafka installation
-- Real message communication
+- Same Kafka communication protocol used in production
 
----
+# Test Lifecycle
 
-# How Dev Containers and Testcontainers Work Together
+During integration testing:
 
-The complete development workflow:
+![Fixed Income Test Lifecycle](docs/test_lifecycle.png)
 
-```
-Developer
+# Development Environment
 
-     |
+This project supports GitHub Codespaces using a Dev Container.
 
-     |
+The Dev Container provides:
 
-GitHub Codespace
+- Java 21
+- Maven
+- VS Code Java tooling
+- Docker support
 
-     |
+The developer does not need to install Kafka locally.
 
-     |
-
-Dev Container
-
-(Java 21 + Maven)
-
-     |
-
-     |
-
-Spring Boot Application
-
-
-During Integration Tests:
-
-
-JUnit 5
-
-     |
-
-     |
-
-Testcontainers
-
-     |
-
-     |
-
-Kafka Container
-
-     |
-
-     |
-
-Kafka Broker
-
-
-```
-
-The developer environment and test infrastructure are separated.
-
----
-
-# Testcontainers Lifecycle
-
-During an integration test:
-
-```
-1. Test starts
-
-        |
-
-        v
-
-2. Testcontainers starts Kafka container
-
-        |
-
-        v
-
-3. Spring Boot connects to Kafka
-
-        |
-
-        v
-
-4. Test publishes PricingFailureEvent
-
-        |
-
-        v
-
-5. Consumers receive event
-
-        |
-
-        v
-
-6. Assertions execute
-
-        |
-
-        v
-
-7. Kafka container is destroyed
-
-```
-
-Each test execution starts with a clean environment.
-
----
-
-# Production Similarity
-
-Production:
-
-```
-Spring Boot Application
-
-        |
-
-        |
-
-Kafka Broker
-
-        |
-
-        |
-
-Trader Notification Services
-
-```
-
-Testing:
-
-```
-Spring Boot Application
-
-        |
-
-        |
-
-Kafka Testcontainer
-
-        |
-
-        |
-
-Trader Notification Consumers
-
-```
-
-The application communicates using the same Kafka protocol.
-
-The only difference is that testing uses a temporary Kafka broker.
-
----
-
-# Technologies Used
-
-| Technology | Purpose |
-|---|---|
-| Java 21 | Application runtime |
-| Spring Boot | Application framework |
-| Kafka | Event messaging |
-| Dev Containers | Development environment |
-| Testcontainers | Integration test infrastructure |
-| Docker | Container runtime |
-| JUnit 5 | Test execution |
-| GitHub Codespaces | Cloud development environment |
-
----
-
-# Opening in GitHub Codespaces
-
-1. Open repository
-
-2. Select:
-
-```
-Codespaces → Create codespace
-```
-
-3. The environment automatically provides:
-
-```
-Java 21
-
-Maven
-
-VS Code Java tooling
-
-Docker support
-```
-
-Verify:
-
-```bash
-java -version
-```
-
-Verify Maven:
-
-```bash
-mvn -version
-```
-
----
-
-# Project Structure
+Project Structure
 
 ```
 fixed-income-pricing-failure-notification
-
 ├── .devcontainer
-│
-├── .github
-│   └── workflows
-│
-├── docs
-│   ├── architecture
-│   └── diagrams
 │
 ├── src
 │
@@ -733,10 +202,9 @@ fixed-income-pricing-failure-notification
 │   │   └── java/com/company/pricing
 │   │
 │   │       ├── config
-│   │       │
 │   │       ├── domain
-│   │       │
 │   │       ├── messaging
+│   │       │
 │   │       │   ├── publisher
 │   │       │   └── consumer
 │   │       │
@@ -744,565 +212,98 @@ fixed-income-pricing-failure-notification
 │   │
 │   └── test
 │
+│       └── resources
+│
+│           └── application-test.yml
+│
 ├── pom.xml
 └── README.md
 ```
 
----
+# Test Configuration
 
-# Kafka Configuration
+This repository contains test configuration only.
 
-Kafka configuration is externalised.
+Configuration location:
 
-Example:
+src/test/resources/application-test.yml
 
-```yaml
-spring:
-  kafka:
-    bootstrap-servers: localhost:9092
-```
+Kafka connection details are supplied dynamically by Testcontainers.
 
-The application does not contain hard-coded infrastructure details.
-
----
-
-# Environment Configuration
-
-Configuration is separated by environment.
+During testing:
 
 ```
-src/main/resources
+    Spring Boot Test Context
 
-├── application.yml
+          |
 
-├── application-dev.yml
+          |
 
-└── application-test.yml
-```
+Dynamic Kafka Bootstrap Server
 
-## Development
+          |
 
-```
-Spring Boot Application
-
-        |
-
-        |
-
-Development Kafka Broker
-```
-
-## Testing
-
-Kafka is supplied dynamically by Testcontainers.
-
-```
-Integration Test
-
-        |
-
-        |
+          |
 
 Kafka Testcontainer
-
-        |
-
-        |
-
-Temporary Kafka Broker
 ```
 
----
-
-# Kafka Producer Implementation
-
-The Pricing Engine publishes a `PricingFailureEvent` when automatic pricing fails.
-
-The producer only knows about the event.
-
-It does not know:
-
-- who consumes the event
-- how many consumers exist
-- what actions are performed
-
-Example:
-
-```
-Pricing Engine
-
-       |
-
-       |
-
-PricingFailureEventPublisher
-
-       |
-
-       |
-
-Kafka Topic
-
-pricing-failure-events
-```
-
----
-
-# Kafka Message Design
-
-Kafka messages contain:
-
-```
-Key
-
-RFQ ID
-
-
-Value
-
-PricingFailureEvent
-```
-
-Using RFQ ID as the Kafka key provides ordering for events belonging to the same RFQ.
-
-Example:
-
-```
-RFQ-10001
-
- |
-
- +--> Pricing attempt failed
-
- |
-
- +--> Retry failed
-
- |
-
- +--> Manual intervention required
-```
-
-Kafka guarantees ordering within a partition.
-
----
-
-# Kafka Consumers
-
-The platform contains two independent consumers.
-
-Both consume:
-
-```
-pricing-failure-events
-```
-
-However, they use different consumer groups.
-
-```
-              pricing-failure-events
-
-
-                    |
-
-        +-----------+-----------+
-
-        |                       |
-
-        v                       v
-
-
-sales-trader              fixed-income-trader
-
-```
-
-Both traders receive their own copy of the event.
-
----
-
-# Notification Service Layer
-
-Kafka consumers are responsible only for receiving messages.
-
-They should not contain business logic.
-
-The notification responsibility is delegated to a service layer.
-
-Architecture:
-
-```
-Kafka Topic
-
-      |
-
-      |
-
-Kafka Consumer
-
-      |
-
-      |
-
-TraderNotificationService
-
-      |
-
-      |
-
-Notification Delivery
-```
-
-Benefits:
-
-- Separation of responsibilities
-- Easier unit testing
-- Independent business logic
-- Easier extension of notification channels
-
-Future channels:
-
-- Trading application alerts
-- Email
-- Chat notifications
-- Mobile notifications
-- Audit notifications
-
----
-
-# Complete System Flow
-
-```
-Client
-
- |
-
- v
-
-RFQ Request
-
- |
-
- v
-
-Pricing Engine
-
- |
-
- X Automatic Pricing Failed
-
- |
-
- v
-
-PricingFailureEvent
-
- |
-
- v
-
-Kafka Topic
-
-pricing-failure-events
-
- |
-
- +-----------------------+
-
- |                       |
-
- v                       v
-
-
-Sales Trader        Fixed Income Trader
-
-Consumer            Consumer
-
- |                       |
-
- v                       v
-
-
-TraderNotificationService
-```
-
----
-
-# Testcontainers
-
-## Why Testcontainers?
-
-Testcontainers allows integration tests to run against real infrastructure inside Docker containers.
-
-This project uses Testcontainers to start a real Kafka broker during automated tests.
-
-It does not mock Kafka.
-
----
-
-## Mock Approach
-
-```
-Application
-
-     |
-
-Fake Kafka Object
-
-     |
-
-Test
-```
-
-This only verifies code interaction.
-
----
-
-## Testcontainers Approach
-
-```
-BDD Integration Test
-
-          |
-
-          |
-
-Spring Boot Application
-
-          |
-
-          |
-
-Real Kafka Broker
-
-running inside Docker
-
-          |
-
-          |
-
-Assertions
-```
-
-Benefits:
-
-- Production-like testing
-- Repeatable environment
-- No manual Kafka installation
-- Same communication protocol as production
-
----
-
-# BDD Integration Test
-
-The main acceptance test verifies:
-
-```gherkin
-@Integration
-@Kafka
-
-Scenario: Notify traders when automatic pricing fails
-
-Given automatic pricing has failed for an RFQ
-
-When the pricing failure event is published
-
-Then the Sales Trader should be notified
-
-And the Fixed Income Trader should be notified
-```
-
-The test verifies:
-
-- Event publication
-- Kafka delivery
-- Multiple consumers
-- Recipient List behaviour
-
-# End-to-End Test Objective
-
-The BDD integration test validates the complete event flow.
-
-The test does not mock Kafka.
-
-It verifies:
-
-- PricingFailureEvent publication
-- Kafka message delivery
-- Multiple consumer groups
-- Recipient List behaviour
-- Trader notification handling
-
-Flow:
-
-Client RFQ
-
-↓
-
-Pricing Engine
-
-↓
-
-PricingFailureEvent
-
-↓
-
-Kafka Testcontainer
-
-↓
-
-Sales Trader Consumer
-
-+
-
-Fixed Income Trader Consumer
-
-↓
-
-Notification Assertions
----
-
-# Running the Application
-
-```bash
-mvn spring-boot:run
-```
-
----
+The test does not require:
+
+Local Kafka installation
+External Kafka broker
+Manually configured infrastructure
 
 # Running Tests
+
+Execute:
 
 ```bash
 mvn clean test
 ```
 
-Integration tests automatically start Kafka using Testcontainers.
+The integration tests automatically:
 
----
+- Start Kafka using Testcontainers
+- Start the Spring Boot test context
+- Publish `PricingFailureEvent` messages
+- Verify consumer behaviour
+- Shut down the Kafka container
 
-# CI/CD Pipeline
+# BDD Integration Test
 
-GitHub Actions executes:
+The acceptance test verifies the following business scenario:
 
-```
-Git Push
+```gherkin
+Scenario: Notify traders when automatic pricing fails
 
-   |
-
-Build Application
-
-   |
-
-Run Unit Tests
-
-   |
-
-Start Kafka Testcontainer
-
-   |
-
-Run Integration Tests
-
-   |
-
-Publish Results
+  Given automatic pricing has failed for an RFQ
+  When the pricing failure event is published
+  Then the Sales Trader is notified
+  And the Fixed Income Trader is notified
 ```
 
----
+The test validates:
 
-# Design Decisions
+- Kafka publishing
+- Kafka consumption
+- Event serialization
+- Multiple consumer groups
+- Notification handling
 
-## Why events?
+# Technologies Used
 
-The pricing failure is a business event.
-
-Consumers react to something that happened.
-
-The producer does not issue commands to specific consumers.
-
----
-
-## Why not direct API calls?
-
-Direct approach:
-
-```
-Pricing Engine
-
-       |
-
-       |
-
-Sales Trader API
-
-       |
-
-       |
-
-Fixed Income Trader API
-```
-
-Problems:
-
-- Tight coupling
-- Harder to add recipients
-- Increased dependencies
-
-Kafka approach:
-
-```
-Pricing Engine
-
-       |
-
-       |
-
-Kafka Event
-
-       |
-
-       |
-
-Multiple Consumers
-```
-
----
-
-# Future Improvements
-
-Potential enhancements:
-
-- Dead Letter Queue handling
-- Retry mechanism
-- Kafka Schema Registry
-- Avro/Protobuf messages
-- Observability with metrics
-- Kubernetes deployment
-- Performance testing
-- Contract testing
-
----
-
-# Interview Discussion Points
-
-This project demonstrates:
-
-## Event Driven Architecture
-
-The pricing engine publishes business events rather than directly calling downstream services.
-
-## Kafka
-
-Kafka provides scalable asynchronous communication.
-
-## Enterprise Integration Patterns
-
-The Recipient List pattern allows multiple consumers to receive the same event.
-
-## Testcontainers
-
-Testcontainers provides production-like integration testing without external infrastructure dependencies.
-
----
+| Technology | Purpose |
+|---|---|
+| Java 21 | Programming language |
+| Spring Boot | Application framework |
+| Spring Kafka | Kafka integration |
+| Apache Kafka | Event messaging |
+| Testcontainers | Starts a real Kafka broker for integration tests |
+| Docker | Container runtime |
+| JUnit 5 | Testing framework |
+| Cucumber | BDD testing |
+| Maven | Build tool |
 
 # Author
 
